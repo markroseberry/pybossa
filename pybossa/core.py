@@ -36,11 +36,18 @@ from pybossa.news import FEED_KEY as NEWS_FEED_KEY
 from pybossa.news import get_news
 from pybossa.messages import *
 import app_settings
-
+from werkzeug.contrib.profiler import ProfilerMiddleware, MergeStream
+import sys,os
 
 def create_app(run_as_server=True):
     """Create web app."""
     app = Flask(__name__.split('.')[0])
+    f = open('/home/ubuntu/pybossa/log/profiler.log', 'w+')
+
+    stream = MergeStream(sys.stdout, f)
+    app.config['PROFILE'] = True
+    restrictions = ('api/task_run.py', 100)
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=restrictions, stream=stream, sort_by=('cumtime', 'tottime', 'ncalls'))
     configure_app(app)
     global talisman
     talisman = Talisman(app, content_security_policy={
@@ -51,6 +58,7 @@ def create_app(run_as_server=True):
     setup_assets(app)
     setup_cache_timeouts(app)
     setup_ratelimits(app)
+    
     setup_theme(app)
     setup_uploader(app)
     setup_error_email(app)
